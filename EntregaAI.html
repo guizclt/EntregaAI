@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pizzaria EntregaAI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f7f7f7;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background: #ffffff;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            margin: 20px;
+        }
+        
+        .screen {
+            display: none;
+        }
+        
+        .screen.active {
+            display: block;
+        }
+        
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #e74c3c;
+        }
+        /* Formulários e Inputs */
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        input,
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            outline: none;
+            font-size: 16px;
+        }
+        
+        input:focus,
+        select:focus {
+            border-color: #e74c3c;
+        }
+        
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 10px;
+        }
+        
+        button:hover {
+            background-color: #c0392b;
+        }
+        
+        button.secondary {
+            background-color: #7f8c8d;
+            margin-top: 5px;
+        }
+        
+        button.secondary:hover {
+            background-color: #616a6b;
+        }
+        /* Cardápio */
+        
+        .menu-list {
+            max-height: 350px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            padding-right: 5px;
+        }
+        
+        .pizza-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .pizza-info .name {
+            font-weight: bold;
+            display: block;
+        }
+        
+        .pizza-info .price {
+            color: #27ae60;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .pizza-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        /* Resumo do Pedido */
+        
+        .summary {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 5px solid #e74c3c;
+        }
+        
+        .total-highlight {
+            font-size: 18px;
+            font-weight: bold;
+            text-align: right;
+            margin-top: 10px;
+            color: #27ae60;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div id="screen-login" class="screen active">
+            <h2>🍕 Pizzaria EntregaAI</h2>
+            <form id="login-form" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="email">E-mail</label>
+                    <input type="email" id="email" placeholder="seuemail@exemplo.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Senha</label>
+                    <input type="password" id="password" placeholder="••••••••" required>
+                </div>
+                <button type="submit">Entrar</button>
+            </form>
+        </div>
+
+        <div id="screen-menu" class="screen">
+            <h2>Escolha suas Pizzas</h2>
+            <div class="menu-list" id="pizza-menu">
+            </div>
+            <div class="total-highlight">Total: R$ <span id="menu-total">0,00</span></div>
+            <button onclick="goToCheckout()">Avançar para o Pedido</button>
+            <button class="secondary" onclick="changeScreen('screen-login')">Voltar</button>
+        </div>
+
+        <div id="screen-checkout" class="screen">
+            <h2>Finalizar Pedido</h2>
+
+            <div class="summary">
+                <strong>Itens selecionados:</strong>
+                <div id="checkout-items"></div>
+                <div class="total-highlight">Total: R$ <span id="checkout-total">0,00</span></div>
+            </div>
+
+            <form id="checkout-form" onsubmit="handleOrder(event)">
+                <div class="form-group">
+                    <label for="phone">Telefone / WhatsApp</label>
+                    <input type="tel" id="phone" placeholder="(11) 99999-9999" required>
+                </div>
+                <div class="form-group">
+                    <label for="address">Endereço de Entrega</label>
+                    <input type="text" id="address" placeholder="Rua, Número, Bairro" required>
+                </div>
+                <div class="form-group">
+                    <label for="payment">Forma de Pagamento</label>
+                    <select id="payment" required>
+                        <option value="">Selecione...</option>
+                        <option value="Pix">Pix</option>
+                        <option value="Cartão de Crédito">Cartão de Crédito</option>
+                        <option value="Cartão de Débito">Cartão de Débito</option>
+                        <option value="Dinheiro">Dinheiro</option>
+                    </select>
+                </div>
+                <button type="submit">Confirmar e Enviar Pedido</button>
+                <button type="button" class="secondary" onclick="changeScreen('screen-menu')">Voltar ao Cardápio</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Dados das pizzas (8 sabores e valores)
+        const pizzas = [{
+            id: 1,
+            name: "Calabresa",
+            price: 40.00
+        }, {
+            id: 2,
+            name: "Muçarela",
+            price: 38.00
+        }, {
+            id: 3,
+            name: "Frango com Catupiry",
+            price: 45.00
+        }, {
+            id: 4,
+            name: "Portuguesa",
+            price: 47.00
+        }, {
+            id: 5,
+            name: "Quatro Queijos",
+            price: 48.00
+        }, {
+            id: 6,
+            name: "Margherita",
+            price: 42.00
+        }, {
+            id: 7,
+            name: "Chocolate com Morango",
+            price: 50.00
+        }, {
+            id: 8,
+            name: "Moda da Casa",
+            price: 52.00
+        }];
+
+        let selectedPizzas = [];
+
+        // Inicializa o cardápio na tela
+        function renderMenu() {
+            const menuContainer = document.getElementById('pizza-menu');
+            menuContainer.innerHTML = '';
+
+            pizzas.forEach(pizza => {
+                menuContainer.innerHTML += `
+                    <div class="pizza-item">
+                        <div class="pizza-info">
+                            <span class="name">${pizza.name}</span>
+                            <span class="price">R$ ${pizza.price.toFixed(2)}</span>
+                        </div>
+                        <input type="checkbox" value="${pizza.id}" onchange="updateTotal()">
+                    </div>
+                `;
+            });
+        }
+
+        // Função genérica para alternar entre as telas
+        function changeScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        // Login (Simulado)
+        function handleLogin(event) {
+            event.preventDefault();
+            // Aqui você pode validar e-mail e senha se quiser
+            changeScreen('screen-menu');
+        }
+
+        // Atualiza o valor total em tempo real no cardápio
+        function updateTotal() {
+            const checkboxes = document.querySelectorAll('#pizza-menu input[type="checkbox"]:checked');
+            let total = 0;
+            selectedPizzas = [];
+
+            checkboxes.forEach(cb => {
+                const pizza = pizzas.find(p => p.id == cb.value);
+                if (pizza) {
+                    total += pizza.price;
+                    selectedPizzas.push(pizza);
+                }
+            });
+
+            document.getElementById('menu-total').innerText = total.toFixed(2);
+        }
+
+        // Avança para a tela de finalização e monta o resumo
+        function goToCheckout() {
+            if (selectedPizzas.length === 0) {
+                alert("Por favor, selecione pelo menos uma pizza antes de avançar!");
+                return;
+            }
+
+            const itemsContainer = document.getElementById('checkout-items');
+            const totalContainer = document.getElementById('checkout-total');
+
+            itemsContainer.innerHTML = '';
+            let total = 0;
+
+            selectedPizzas.forEach(pizza => {
+                itemsContainer.innerHTML += `<div>• ${pizza.name} - R$ ${pizza.price.toFixed(2)}</div>`;
+                total += pizza.price;
+            });
+
+            totalContainer.innerText = total.toFixed(2);
+            changeScreen('screen-checkout');
+        }
+
+        // Finaliza o pedido exibindo os dados informados
+        function handleOrder(event) {
+            event.preventDefault();
+
+            const phone = document.getElementById('phone').value;
+            const address = document.getElementById('address').value;
+            const payment = document.getElementById('payment').value;
+
+            alert(`🎉 Pedido Confirmado com Sucesso!\n\n📍 Entrega em: ${address}\n📞 Contato: ${phone}\n💳 Pagamento: ${payment}\n\nObrigado pela preferência!`);
+
+            // Reseta o app e volta para o login/cardápio
+            document.getElementById('checkout-form').reset();
+            document.getElementById('login-form').reset();
+            renderMenu();
+            document.getElementById('menu-total').innerText = "0,00";
+            changeScreen('screen-login');
+        }
+
+        // Renderiza o cardápio assim que a página carrega
+        renderMenu();
+    </script>
+</body>
+
+</html>
